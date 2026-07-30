@@ -100,10 +100,18 @@ function toPlainText(content: string, sectionKey: string): string {
   return content
 }
 
-// localStorage key scoped to sectionKey + first 40 chars of raw content
-// so a new PDF analysis invalidates the cache automatically
-function storageKey(sectionKey: string, rawContent: string) {
-  return `ps_suggestion_${sectionKey}_${rawContent.slice(0, 40).replace(/\s+/g, '_')}`
+// Hash the full initialContent so ANY change (even trailing lines) busts the cache.
+// This prevents stale dirty content from persisting after a new clean analysis.
+function hashStr(s: string): string {
+  let h = 0
+  for (let i = 0; i < s.length; i++) {
+    h = Math.imul(31, h) + s.charCodeAt(i) | 0
+  }
+  return Math.abs(h).toString(36)
+}
+
+function storageKey(sectionKey: string, initialContent: string) {
+  return `ps_suggestion_${sectionKey}_${hashStr(initialContent)}`
 }
 
 export default function SuggestionBlock({
@@ -112,7 +120,7 @@ export default function SuggestionBlock({
 }: Props) {
   const [content, setContent] = useState<string>(() => {
     try {
-      return localStorage.getItem(storageKey(sectionKey, rawContent)) || initialContent
+      return localStorage.getItem(storageKey(sectionKey, initialContent)) || initialContent
     } catch {
       return initialContent
     }
@@ -122,7 +130,7 @@ export default function SuggestionBlock({
   const colors = COLORS[accentColor]
 
   const persist = (text: string) => {
-    try { localStorage.setItem(storageKey(sectionKey, rawContent), text) } catch { /* ignore */ }
+    try { localStorage.setItem(storageKey(sectionKey, initialContent), text) } catch { /* ignore */ }
   }
 
   const handleCopy = () => {
