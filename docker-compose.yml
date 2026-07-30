@@ -1,0 +1,49 @@
+version: "3.9"
+
+services:
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    container_name: profilescore-jaeger
+    ports:
+      - "16686:16686"   # UI
+      - "4317:4317"     # OTLP gRPC
+      - "4318:4318"     # OTLP HTTP
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - profilescore-net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: profilescore-backend
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - OTEL_SERVICE_NAME=profilescore-backend
+    depends_on:
+      - jaeger
+    volumes:
+      - ./backend:/app
+    networks:
+      - profilescore-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: profilescore-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - profilescore-net
+
+networks:
+  profilescore-net:
+    driver: bridge
