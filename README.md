@@ -52,28 +52,26 @@ Built with a **LangGraph agentic pipeline**, dual LLM support (Azure OpenAI + Go
 
 ```mermaid
 flowchart TD
-    User([👤 User / Browser])
+    User(["👤 User / Browser"])
 
-    User -->|Upload PDF or Paste Text| FE
+    User -->|"Upload PDF or Paste Text"| Home
 
-    subgraph FE["🖥️ React Frontend · Vite · TypeScript · Tailwind"]
-        Home["📄 Home Page\nPDF Drop Zone · Paste Text\nTarget Role · Job Description"]
-        Results["📊 Results Page\nScore Dashboard · Section Cards\nLinkedIn Suggestions · ATS Resume"]
+    subgraph FE["🖥 React Frontend — Vite + TypeScript + Tailwind"]
+        Home["📄 Home Page\nPDF Drop Zone or Paste Text\nTarget Role + Job Description"]
+        Results["📊 Results Page\nScore Dashboard + Section Cards\nLinkedIn Suggestions + ATS Resume"]
     end
 
-    Home -->|POST /api/analyze/upload\nPOST /api/analyze/text| API
-    Results -->|POST /api/analyze/rewrite-section| API
-    Results -->|POST /api/resume/generate| API
+    Home -->|"POST /api/analyze/upload\nPOST /api/analyze/text"| Router
+    Results -->|"POST /api/analyze/rewrite-section"| Router
+    Results -->|"POST /api/resume/generate"| Router
 
-    subgraph API["⚡ FastAPI Backend · Python 3.13"]
-        direction TB
-        Router["API Router\n/api/analyze  /api/resume"]
+    subgraph API["⚡ FastAPI Backend — Python 3.13"]
+        Router["🔀 API Router\n/api/analyze   /api/resume"]
 
         subgraph LG["🤖 LangGraph Agentic Pipeline"]
-            direction LR
             P["Parse Node\npdfplumber\nSection Splitter\nArtifact Cleaner"]
             S["Score Node\nLLM Scoring\nKeyword Match\nGap Analysis"]
-            F["Finalize Node\nEnrich Metadata\nName · URL · Location"]
+            F["Finalize Node\nEnrich Metadata\nName + URL + Location"]
             P --> S --> F
         end
 
@@ -82,36 +80,56 @@ flowchart TD
             GM["Google Gemini\ngemini-2.0-flash"]
         end
 
-        subgraph DOC["📄 Resume Generator"]
-            DX["python-docx\nProfessional Template\nName · Contact · Sections"]
+        subgraph DOC["📝 Resume Builder"]
+            DX["python-docx\nProfessional DOCX Template\nName + Contact + Sections"]
         end
 
-        subgraph OBS["📡 OpenTelemetry"]
-            TR["Traces + Metrics\nJaeger Exporter\nGraceful Fallback"]
+        subgraph OBS["📡 Observability"]
+            TR["OpenTelemetry\nTraces + Metrics\nJaeger Exporter"]
         end
 
         Router --> LG
-        S -->|prompt| LLM
+        S -->|"prompt"| AZ
+        S -->|"prompt"| GM
         Router --> DOC
-        LG -.->|spans| OBS
+        LG -.->|"spans"| TR
     end
 
     subgraph INFRA["🐳 Docker Compose"]
-        B["backend : 8000"]
-        FEI["frontend : 5173"]
-        J["Jaeger : 16686"]
+        B["backend:8000"]
+        FEI["frontend:5173"]
+        J["Jaeger:16686"]
     end
 
-    API --> INFRA
-    FE --> INFRA
+    API --> B
+    FE --> FEI
+    TR -.-> J
 
-    style FE fill:#1e3a5f,color:#93c5fd,stroke:#3b82f6
-    style API fill:#1a2e1a,color:#86efac,stroke:#22c55e
-    style LG fill:#2d1b69,color:#c4b5fd,stroke:#8b5cf6
-    style LLM fill:#1a1a2e,color:#93c5fd,stroke:#3b82f6
-    style DOC fill:#1a2e2e,color:#6ee7b7,stroke:#10b981
-    style OBS fill:#2e1a1a,color:#fca5a5,stroke:#ef4444
-    style INFRA fill:#1e1e2e,color:#cbd5e1,stroke:#475569
+    classDef frontend fill:#1e3a5f,color:#bfdbfe,stroke:#3b82f6,stroke-width:2px
+    classDef pipeline fill:#2d1b69,color:#ddd6fe,stroke:#8b5cf6,stroke-width:2px
+    classDef llm fill:#1e1b4b,color:#c7d2fe,stroke:#6366f1,stroke-width:2px
+    classDef docgen fill:#134e4a,color:#99f6e4,stroke:#10b981,stroke-width:2px
+    classDef obs fill:#450a0a,color:#fecaca,stroke:#ef4444,stroke-width:2px
+    classDef infra fill:#1e293b,color:#cbd5e1,stroke:#64748b,stroke-width:2px
+    classDef router fill:#166534,color:#bbf7d0,stroke:#22c55e,stroke-width:2px
+    classDef user fill:#0f172a,color:#f1f5f9,stroke:#64748b,stroke-width:2px
+
+    class Home,Results frontend
+    class P,S,F pipeline
+    class AZ,GM llm
+    class DX docgen
+    class TR obs
+    class B,FEI,J infra
+    class Router router
+    class User user
+
+    style FE fill:#0f2744,color:#93c5fd,stroke:#3b82f6,stroke-width:2px
+    style API fill:#052e16,color:#86efac,stroke:#22c55e,stroke-width:2px
+    style LG fill:#1e0a4a,color:#c4b5fd,stroke:#8b5cf6,stroke-width:2px
+    style LLM fill:#0f0f3d,color:#a5b4fc,stroke:#6366f1,stroke-width:2px
+    style DOC fill:#042f2e,color:#6ee7b7,stroke:#10b981,stroke-width:2px
+    style OBS fill:#2d0505,color:#fca5a5,stroke:#ef4444,stroke-width:2px
+    style INFRA fill:#0f172a,color:#94a3b8,stroke:#475569,stroke-width:2px
 ```
 
 ---
