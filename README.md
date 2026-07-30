@@ -50,44 +50,68 @@ Built with a **LangGraph agentic pipeline**, dual LLM support (Azure OpenAI + Go
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        React Frontend                           │
-│   Home (Upload/Text) ──► Results (Score + Suggestions + Resume) │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │ HTTP / REST
-┌──────────────────────────────▼──────────────────────────────────┐
-│                      FastAPI Backend                            │
-│                                                                 │
-│  POST /api/analyze/upload   POST /api/analyze/text              │
-│  POST /api/analyze/rewrite-section                              │
-│  POST /api/resume/generate                                      │
-│                                                                 │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │              LangGraph Agentic Pipeline                   │  │
-│  │                                                           │  │
-│  │   ┌─────────┐    ┌─────────┐    ┌──────────────────┐    │  │
-│  │   │  Parse  │───►│  Score  │───►│    Finalize      │    │  │
-│  │   │  Node   │    │  Node   │    │    Node          │    │  │
-│  │   │         │    │         │    │                  │    │  │
-│  │   │pdfplumb │    │  LLM    │    │ enrich + attach  │    │  │
-│  │   │section  │    │ analyze │    │ raw_sections     │    │  │
-│  │   │splitter │    │ + score │    │ + name/URL/loc   │    │  │
-│  │   └─────────┘    └─────────┘    └──────────────────┘    │  │
-│  └───────────────────────────────────────────────────────────┘  │
-│                                                                 │
-│  ┌───────────────┐   ┌──────────────────────────────────────┐  │
-│  │  LLM Factory  │   │       OpenTelemetry (OTEL)           │  │
-│  │               │   │  Traces + Metrics → Jaeger           │  │
-│  │ Azure OpenAI  │   │  Gracefully disabled when offline    │  │
-│  │ Google Gemini │   └──────────────────────────────────────┘  │
-│  └───────────────┘                                             │
-└─────────────────────────────────────────────────────────────────┘
-                               │
-┌──────────────────────────────▼──────────────────────────────────┐
-│                      Docker Compose                             │
-│   backend:8000  ·  frontend:5173  ·  jaeger:16686              │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    User([👤 User / Browser])
+
+    User -->|Upload PDF or Paste Text| FE
+
+    subgraph FE["🖥️ React Frontend · Vite · TypeScript · Tailwind"]
+        Home["📄 Home Page\nPDF Drop Zone · Paste Text\nTarget Role · Job Description"]
+        Results["📊 Results Page\nScore Dashboard · Section Cards\nLinkedIn Suggestions · ATS Resume"]
+    end
+
+    Home -->|POST /api/analyze/upload\nPOST /api/analyze/text| API
+    Results -->|POST /api/analyze/rewrite-section| API
+    Results -->|POST /api/resume/generate| API
+
+    subgraph API["⚡ FastAPI Backend · Python 3.13"]
+        direction TB
+        Router["API Router\n/api/analyze  /api/resume"]
+
+        subgraph LG["🤖 LangGraph Agentic Pipeline"]
+            direction LR
+            P["Parse Node\npdfplumber\nSection Splitter\nArtifact Cleaner"]
+            S["Score Node\nLLM Scoring\nKeyword Match\nGap Analysis"]
+            F["Finalize Node\nEnrich Metadata\nName · URL · Location"]
+            P --> S --> F
+        end
+
+        subgraph LLM["🧠 LLM Factory"]
+            AZ["Azure OpenAI\ngpt-4o-mini"]
+            GM["Google Gemini\ngemini-2.0-flash"]
+        end
+
+        subgraph DOC["📄 Resume Generator"]
+            DX["python-docx\nProfessional Template\nName · Contact · Sections"]
+        end
+
+        subgraph OBS["📡 OpenTelemetry"]
+            TR["Traces + Metrics\nJaeger Exporter\nGraceful Fallback"]
+        end
+
+        Router --> LG
+        S -->|prompt| LLM
+        Router --> DOC
+        LG -.->|spans| OBS
+    end
+
+    subgraph INFRA["🐳 Docker Compose"]
+        B["backend : 8000"]
+        FEI["frontend : 5173"]
+        J["Jaeger : 16686"]
+    end
+
+    API --> INFRA
+    FE --> INFRA
+
+    style FE fill:#1e3a5f,color:#93c5fd,stroke:#3b82f6
+    style API fill:#1a2e1a,color:#86efac,stroke:#22c55e
+    style LG fill:#2d1b69,color:#c4b5fd,stroke:#8b5cf6
+    style LLM fill:#1a1a2e,color:#93c5fd,stroke:#3b82f6
+    style DOC fill:#1a2e2e,color:#6ee7b7,stroke:#10b981
+    style OBS fill:#2e1a1a,color:#fca5a5,stroke:#ef4444
+    style INFRA fill:#1e1e2e,color:#cbd5e1,stroke:#475569
 ```
 
 ---
