@@ -59,7 +59,7 @@ def _llm_complete(prompt: str, max_tokens: int = 4096) -> tuple[str, int, int]:
         client = _get_azure_client()
         response = client.chat.completions.create(
             model=settings.azure_openai_deployment,
-            max_tokens=max_tokens,
+            max_completion_tokens=max_tokens,
             messages=[{"role": "user", "content": prompt}],
         )
         text = response.choices[0].message.content
