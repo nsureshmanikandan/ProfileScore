@@ -1,4 +1,4 @@
-from openai import AzureOpenAI
+from openai import OpenAI
 from google import genai
 from google.genai import types as genai_types
 import httpx
@@ -12,15 +12,14 @@ logger = get_logger(__name__)
 tracer = get_tracer("llm_service")
 
 # Azure OpenAI client (lazy — only used when provider == "azure")
-_azure_client: AzureOpenAI | None = None
+_azure_client: OpenAI | None = None
 
-def _get_azure_client() -> AzureOpenAI:
+def _get_azure_client() -> OpenAI:
     global _azure_client
     if _azure_client is None:
-        _azure_client = AzureOpenAI(
+        _azure_client = OpenAI(
+            base_url=settings.azure_openai_base_url,
             api_key=settings.azure_openai_api_key,
-            azure_endpoint=settings.azure_openai_endpoint,
-            api_version=settings.azure_openai_api_version,
             http_client=httpx.Client(verify=settings.ssl_verify),
         )
     return _azure_client
@@ -58,7 +57,7 @@ def _llm_complete(prompt: str, max_tokens: int = 4096) -> tuple[str, int, int]:
         # Default: Azure OpenAI
         client = _get_azure_client()
         response = client.chat.completions.create(
-            model=settings.azure_openai_deployment,
+            model=settings.azure_openai_model,
             max_completion_tokens=max_tokens,
             messages=[{"role": "user", "content": prompt}],
         )

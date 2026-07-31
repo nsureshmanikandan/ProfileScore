@@ -13,11 +13,10 @@ class Settings(BaseSettings):
     # LLM provider: "azure" | "gemini"
     llm_provider: str = "azure"
 
-    # Azure OpenAI
+    # Azure OpenAI (v1 endpoint — use standard OpenAI client with base_url)
     azure_openai_api_key: str = ""
-    azure_openai_endpoint: str = ""     # e.g. https://<resource>.openai.azure.com/
-    azure_openai_deployment: str = "gpt-5-mini"
-    azure_openai_api_version: str = "2024-12-01-preview"
+    azure_openai_base_url: str = "https://agentforgeai-resource.services.ai.azure.com/openai/v1"
+    azure_openai_model: str = "gpt-5.4-mini"
 
     # Google Gemini
     gemini_api_key: str = ""
